@@ -31,8 +31,12 @@ class IncomingAgent;
 class OutgoingAgent;
 class IncomingTransaction;
 class OutgoingTransaction;
+class SipEvent;
+
 
 class MsgSip {
+	friend class SipEvent;
+	friend class IncomingTransaction;
 public:
 	MsgSip(msg_t *msg, sip_t *sip = NULL);
 	MsgSip(const MsgSip &msgSip);
@@ -56,6 +60,7 @@ private:
 	su_home_t *mHome;
 	msg_t *mMsg;
 	sip_t *mSip;
+	msg_t *mOrigMsg;
 };
 
 class SipEvent {

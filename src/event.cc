@@ -28,6 +28,7 @@ using namespace ::std;
 
 MsgSip::MsgSip(msg_t *msg, sip_t *sip) {
 	//LOGD("New MsgSip %p", this);
+	mOrigMsg=msg_ref_create(msg);
 	mMsg = msg_copy(msg);
 	msg_addr_copy(mMsg,msg);
 	mSip = sip_object(mMsg);
@@ -36,6 +37,7 @@ MsgSip::MsgSip(msg_t *msg, sip_t *sip) {
 
 MsgSip::MsgSip(const MsgSip &msgSip) {
 	//LOGD("New MsgSip %p", this);
+	mOrigMsg=msg_ref_create(msgSip.mMsg);
 	mMsg = msg_copy(msgSip.mMsg);
 	msg_addr_copy(mMsg,msgSip.mMsg);
 	mSip = sip_object(mMsg);
@@ -61,6 +63,7 @@ void MsgSip::log(const char *fmt, ...) {
 MsgSip::~MsgSip() {
 	//LOGD("Destroy MsgSip %p", this);
 	msg_destroy(mMsg);
+	msg_destroy(mOrigMsg);
 }
 
 SipEvent::SipEvent(const shared_ptr<MsgSip> msgSip) :

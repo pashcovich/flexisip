@@ -99,7 +99,7 @@ IncomingTransaction::IncomingTransaction(Agent *agent) :
 }
 
 void IncomingTransaction::handle(const shared_ptr<MsgSip> &ms) {
-	msg_t* msg = msg_dup(ms->getMsg());
+	msg_t* msg = ms->mOrigMsg;
 	mIncoming = nta_incoming_create(mAgent->mAgent, NULL, msg, sip_object(msg), TAG_END());
 	if (mIncoming != NULL) {
 		nta_incoming_bind(mIncoming, IncomingTransaction::_callback, (nta_incoming_magic_t*) this);

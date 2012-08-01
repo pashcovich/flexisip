@@ -584,9 +584,9 @@ AuthDbResult OdbcAuthDb::doRetrievePassword(const string &id, const string &doma
 	}
 
 	if (retcode == SQL_NO_DATA) {
-		LOGE("No data fetched");
+		LOGE("No data fetched, empty result.");
 		closeCursor(stmt);
-		return AUTH_ERROR;
+		return PASSWORD_NOT_FOUND;
 	}
 
 	SQLLEN cbPass;

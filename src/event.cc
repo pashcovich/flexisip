@@ -37,7 +37,7 @@ MsgSip::MsgSip(msg_t *msg, sip_t *sip) {
 
 MsgSip::MsgSip(const MsgSip &msgSip) {
 	//LOGD("New MsgSip %p", this);
-	mOrigMsg=msg_ref_create(msgSip.mMsg);
+	mOrigMsg=msg_ref_create(msgSip.mOrigMsg);
 	mMsg = msg_copy(msgSip.mMsg);
 	msg_addr_copy(mMsg,msgSip.mMsg);
 	mSip = sip_object(mMsg);

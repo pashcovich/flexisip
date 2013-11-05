@@ -102,8 +102,10 @@ void ForwardModule::processFixedRoute(su_home_t *home, sip_t *sip){
 	sip_route_t *route=sip->sip_route;
 	char received[64]={0};
 	char rport[8]={0};
-	if (route && (url_param(route->r_url->url_params,"fs-received",received,sizeof(received))
-		|| url_param(route->r_url->url_params,"fs-rport",rport,sizeof(rport)))){
+	
+	if (route){
+		url_param(route->r_url->url_params,"fs-received",received,sizeof(received));
+		url_param(route->r_url->url_params,"fs-rport",rport,sizeof(rport));
 		if (received[0]!=0){
 			route->r_url->url_host=su_strdup(home,received);
 			route->r_url->url_params=url_strip_param_string(su_strdup(home,route->r_url->url_params),"fs-received");

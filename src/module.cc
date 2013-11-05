@@ -408,7 +408,7 @@ bool ModuleToolbox::urlViaMatch(url_t *url, sip_via_t *via, bool use_received_rp
 	url_param(url->url_params,"transport",url_transport,sizeof(url_transport));
 	if (strcmp(url->url_scheme,"sips")==0) strncpy(url_transport,"TLS",sizeof(url_transport));
 	
-	return strcmp(via_host,url_host)==0 && strcmp(via_port,url_pt)==0 && strcasecmp(via_transport,url_transport)==0;
+	return strcmp(via_host,url_host)==0 && strcmp(via_port,url_pt)==0;
 }
 
 bool ModuleToolbox::isNumeric(const char *host){

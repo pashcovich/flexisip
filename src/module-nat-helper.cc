@@ -38,11 +38,15 @@ class NatHelper : public Module, protected ModuleToolbox{
 			fixContactFromVia(ms->getHome(), sip, sip->sip_via);
 
 			//processing of requests that may establish a dialog.
-			if ((sip->sip_to->a_tag==NULL) && (rq->rq_method==sip_method_invite || rq->rq_method==sip_method_subscribe)){
-				//fix potential record-route from a natted proxy added before us
-				if (mFixRecordRoutes)
-					fixRecordRouteInRequest(ms);
-				addRecordRouteIncoming(ms->getHome(),getAgent(), ev);
+			if (rq->rq_method==sip_method_invite || rq->rq_method==sip_method_subscribe){
+				if (sip->sip_to->a_tag==NULL){
+					//fix potential record-route from a natted proxy added before us
+					if (mFixRecordRoutes)
+						fixRecordRouteInRequest(ms);
+					addRecordRouteIncoming(ms->getHome(),getAgent(), ev);
+				}else if (sip->sip_route){
+					processFixedRoute(ms);
+				}
 			}
 			//fix potential Path header inserted before us by a flexisip natted proxy
 			if (rq->rq_method==sip_method_register && sip->sip_path && sip->sip_path->r_url && url_has_param(sip->sip_path->r_url, "fs-proxy-id")) {
@@ -218,9 +222,11 @@ class NatHelper : public Module, protected ModuleToolbox{
 				|| url_param(route->r_url->url_params,"fs-rport",rport,sizeof(rport)))){
 				if (received[0]!=0){
 					route->r_url->url_host=su_strdup(ms->getHome(),received);
+					route->r_url->url_params=url_strip_param_string(su_strdup(ms->getHome(),route->r_url->url_params),"fs-received");
 				}
 				if (rport[0]!=0){
 					route->r_url->url_port=su_strdup(ms->getHome(),rport);
+					route->r_url->url_params=url_strip_param_string(su_strdup(ms->getHome(),route->r_url->url_params),"fs-rport");
 				}
 			}
 		}

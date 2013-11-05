@@ -40,7 +40,7 @@ public:
 	~ForwardModule();
 private:
 	url_t* overrideDest(shared_ptr<RequestSipEvent> &ev, url_t* dest);
-	void processFixedRoute(su_home_t *home, sip_t *sip);
+	url_t* getDestinationFromRoute(su_home_t *home, sip_t *sip);
 	bool isLooping(shared_ptr<RequestSipEvent> &ev, const char * branch);
 	unsigned int countVia(shared_ptr<RequestSipEvent> &ev);
 	su_home_t mHome;
@@ -98,23 +98,27 @@ url_t* ForwardModule::overrideDest(shared_ptr<RequestSipEvent> &ev, url_t *dest)
 	return dest;
 }
 
-void ForwardModule::processFixedRoute(su_home_t *home, sip_t *sip){
+url_t * ForwardModule::getDestinationFromRoute(su_home_t *home, sip_t *sip){
 	sip_route_t *route=sip->sip_route;
-	char received[64]={0};
-	char rport[8]={0};
 	
 	if (route){
+		char received[64]={0};
+		char rport[8]={0};
+		url_t *ret=url_hdup(home,sip->sip_route->r_url);
+		
 		url_param(route->r_url->url_params,"fs-received",received,sizeof(received));
 		url_param(route->r_url->url_params,"fs-rport",rport,sizeof(rport));
 		if (received[0]!=0){
-			route->r_url->url_host=su_strdup(home,received);
-			route->r_url->url_params=url_strip_param_string(su_strdup(home,route->r_url->url_params),"fs-received");
+			ret->url_host=su_strdup(home,received);
+			ret->url_params=url_strip_param_string(su_strdup(home,route->r_url->url_params),"fs-received");
 		}
 		if (rport[0]!=0){
-			route->r_url->url_port=su_strdup(home,rport);
-			route->r_url->url_params=url_strip_param_string(su_strdup(home,route->r_url->url_params),"fs-rport");
+			ret->url_port=su_strdup(home,rport);
+			ret->url_params=url_strip_param_string(su_strdup(home,route->r_url->url_params),"fs-rport");
 		}
+		return ret;
 	}
+	return NULL;
 }
 
 void ForwardModule::onRequest(shared_ptr<RequestSipEvent> &ev) {
@@ -139,9 +143,7 @@ void ForwardModule::onRequest(shared_ptr<RequestSipEvent> &ev) {
 		sip_route_remove(msg, sip);
 	}
 	if (sip->sip_route != NULL) {
-		processFixedRoute(ms->getHome(),sip);
-		/*forward to this route*/
-		dest = sip->sip_route->r_url;
+		dest=getDestinationFromRoute(ms->getHome(),sip);
 	}
 
 	/* workaround bad sip uris with two @ that results in host part being "something@somewhere" */

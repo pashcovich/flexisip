@@ -24,10 +24,6 @@
 
 using namespace msgpack;
 
-RecordSerializerMsgPack::RecordSerializerMsgPack() {
-		
-}
-
 struct MsgPackContact {
 	std::string mContactId;
 	std::string mCallId;
@@ -42,6 +38,7 @@ struct MsgPackContact {
 	std::list<std::string> mAcceptHeader;
 	bool mUsedAsRoute;
 	std::string line;
+
 
 	MSGPACK_DEFINE(mContactId, mCallId, mPath, mSipUri, mQ, mExpireAt, mUpdatedTime, mCSeq, mAlias, mAcceptHeader, mUsedAsRoute, line);
 };
@@ -71,9 +68,9 @@ bool RecordSerializerMsgPack::serialize(Record *r, std::string &serialized, bool
 	std::stringstream ss;
 	auto extContacts = r->getExtendedContacts();
 	std::vector<MsgPackContact> contacts;
+	contacts.reserve(extContacts.size());
 	for( auto it=extContacts.begin(); it != extContacts.end(); ++it){
 		auto c = *it;
-		SLOGI << "CSeq " << c->mCSeq;
 		contacts.push_back({
 			c->mContactId,
 			c->mCallId,

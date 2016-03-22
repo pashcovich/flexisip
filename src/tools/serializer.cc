@@ -16,8 +16,10 @@
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 #include "tool_utils.hh"
+#include <chrono>
 
 using namespace std;
+using namespace chrono;
 
 int test_bind_with_ecc(ExtendedContactCommon &ecc, const unique_ptr<RecordSerializer> &serializer, string contact,
 					   time_t expireat, float quality, long cseq, time_t now, bool alias, sip_accept_t *accept) {
@@ -97,18 +99,106 @@ int test_bind_without_ecc(ExtendedContactCommon &ecc, const unique_ptr<RecordSer
 	return 0;
 }
 
+int test_performances_with_iterations(int iterations,
+									  ExtendedContactCommon &ecc,
+									  const unique_ptr<RecordSerializer> &serializer,
+									  string contact,
+									  time_t expireat,
+									  float quality,
+									  long cseq,
+									  time_t now,
+									  bool alias,
+									  sip_accept_t *accept)
+{
+
+
+	Record initial("key");
+
+	list<string> acceptHeaders;
+	while (accept != NULL) {
+		acceptHeaders.push_back(accept->ac_type);
+		accept = accept->ac_next;
+	}
+
+	initial.update(ecc, contact.c_str(), expireat, quality, cseq, now, alias, acceptHeaders, false);
+	if (!compare(firstContact(initial), alias, ecc, cseq, expireat, quality, contact, now)) {
+		cerr << "Initial and parameters differ" << endl;
+		return -1;
+	}
+
+	string serialized;
+	long total_size = 0;
+	serialized.reserve(512);
+
+	steady_clock::time_point start = steady_clock::now();
+
+	for( int i=0; i<iterations; i++ ){
+		if (!serializer->serialize(&initial, serialized, false)) {
+			cerr << "Failed serializing" << endl;
+			return -1;
+		}
+		total_size += serialized.length();
+		serialized.clear();
+	}
+
+	steady_clock::time_point stop = steady_clock::now();
+#define DURATION_MS(start, stop) (unsigned long) duration_cast<milliseconds>((stop) - (start)).count()
+
+	unsigned long duration_ms = DURATION_MS(start, stop);
+
+	cout << "[SERIALIZE] Duration of the " << iterations << " iterations: " << duration_ms << "ms" << endl;
+	cout << "[SERIALIZE] Performances: " << (float)iterations/(duration_ms/1000.0F) << " serializations / s" << endl;
+	cout << "[SERIALIZE] Performances: " << (float)(duration_ms)/(float)iterations << "ms / serialization" << endl;
+
+	Record final("key");
+	if (!serializer->serialize(&initial, serialized, false)) {
+		cerr << "Failed serializing" << endl;
+		return -1;
+	}
+	string to_deserialize;
+	to_deserialize.reserve(512);
+	to_deserialize = serialized;
+	start = steady_clock::now();
+
+	for( int i=0; i<iterations; i++ ){
+		Record final("key");
+		if (!serializer->parse(to_deserialize, &final)) {
+			cerr << "Failed parsing" << endl;
+			return -1;
+		}
+		to_deserialize = serialized;
+	}
+	stop = steady_clock::now();
+	duration_ms = DURATION_MS(start, stop);
+
+	cout << "[DESERIALIZE] Duration of the " << iterations << " iterations: " << duration_ms << "ms" << endl;
+	cout << "[DESERIALIZE] Performances: " << (float)iterations/(duration_ms/1000.0F) << " deserializations / s" << endl;
+	cout << "[DESERIALIZE] Performances: " << (float)(duration_ms)/(float)iterations << "ms / deserialization" << endl;
+
+	return 0;
+
+}
+
 SofiaHome home;
 
 int main(int argc, char **argv) {
-	if (argc != 2) {
+	int iterations = 0;
+
+	if (argc < 2 || argc > 3) {
 		cerr << "bad usage" << endl;
+		cerr << argv[0] << " (protobuf|c|json|msgpack) [iterations]" << endl;
 		exit(-1);
 	}
+	
 	init_tests();
 	auto serializer = unique_ptr<RecordSerializer>(RecordSerializer::create(argv[1]));
 	if (!serializer) {
 		cerr << "bad serializer" << argv[1] << endl;
 		exit(-1);
+	}
+
+	if( argc == 3 ){
+		iterations = atoi(argv[2]);
 	}
 
 	int expire_delta = 1000;
@@ -140,6 +230,10 @@ int main(int argc, char **argv) {
 		BAD("failure in bind without ecc");
 	}
 
+	if( iterations != 0){
+		test_performances_with_iterations(iterations, ecc, serializer, contact, expireat, quality, cseq, now, alias, accept);
+
+	}
 	cout << "success" << endl;
 	return 0;
 }
